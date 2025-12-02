@@ -1,0 +1,51 @@
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QCheckBox, QPushButton, QDialog, QFormLayout, QDoubleSpinBox, QLabel
+
+class AugmentationMethodWidget(QWidget):
+    def __init__(self, name: str, method_callable, parameters: dict = None):
+        super().__init__()
+        self.method = method_callable
+        self.parameters = parameters or {}
+        
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
+        
+        self.checkbox = QCheckBox(name)
+        self.layout.addWidget(self.checkbox)
+        
+        # Кнопка для открытия настроек
+        if self.parameters:
+            self.settings_button = QPushButton("^")
+            self.settings_button.setFixedWidth(25)
+            self.settings_button.clicked.connect(self.open_settings)
+            self.layout.addWidget(self.settings_button)
+        
+        self.param_widgets = {}
+
+    def open_settings(self):
+        """Открывает попап для редактирования параметров."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Параметры метода")
+        form = QFormLayout(dialog)
+        
+        self.param_widgets = {}
+        for param_name, (default, min_val, max_val, step) in self.parameters.items():
+            spin = QDoubleSpinBox()
+            spin.setRange(min_val, max_val)
+            spin.setSingleStep(step)
+            spin.setValue(default)
+            form.addRow(QLabel(param_name), spin)
+            self.param_widgets[param_name] = spin
+        
+        dialog.exec_()
+
+    def is_enabled(self):
+        return self.checkbox.isChecked()
+
+    def get_params(self):
+        return {name: widget.value() for name, widget in self.param_widgets.items()}
+
+    def call_method(self, image):
+        if self.is_enabled():
+            params = self.get_params()
+            return self.method(image, **params)
+        return image

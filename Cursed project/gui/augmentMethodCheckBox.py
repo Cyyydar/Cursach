@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QCheckBox, QPushButton, QDialog, QFormLayout, QDoubleSpinBox, QLabel
 
-class AugmentationMethodWidget(QWidget):
+class AugmentationMethodCheckBox(QWidget):
     def __init__(self, name: str, method_callable, parameters: dict = None):
         super().__init__()
         self.method = method_callable

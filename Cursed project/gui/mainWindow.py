@@ -8,7 +8,17 @@ from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 #from augmentMethodWidget import AugmentationMethodWidget #augmentMethodWidget import AugmentationMethodWidget
 from gui.augmentMethodWidget import AugmentationMethodWidget
+from gui.augmentMethodRadioButton import AugmentationMethodRadio, AugmentationMethodGroup
+
 from augmentator.noiseAugmentator import NoiseAugmentator
+from augmentator.denoiseAugmentator import DenoiseAugmentor
+from augmentator.historgamAugmentator import HistogramAugmentator
+from augmentator.colorTransformAugmetnator import ColorTransformAugmentor
+from augmentator.colorRestorationAugmentator import ColorRestorationAugmentor
+from augmentator.gradientAugmentator import GradientAugmentor
+from augmentator.geometricAugmentator import GeometricAugmentor
+from augmentator.blendAugmentator import ImageBlender
+from augmentator.russifierAugmentator import RussifierAugmentor
 
 # Путь до папки platforms, так как qt на питоне проклят и не работает нифига
 plugin_path = r"Lib\site-packages\PyQt5\Qt5\plugins\platforms"
@@ -63,30 +73,157 @@ class MainWindow(QMainWindow):
         self.dataset_combo.currentTextChanged.connect(self.change_dataset)
         self.dataset_combo.setFixedWidth(200)
 
-        controls_layout.addWidget(self.dataset_combo)
+        images_layout.addWidget(self.dataset_combo)
 
         # Методы аугментации
         self.methods = []
 
         # Шум
         noise_box = QVBoxLayout()
-        noise_box.setSpacing(10)
+        noise_box.setAlignment(Qt.AlignTop)
         
-        self.noise_label = QLabel("Зашумление")
-        noise_box.addWidget(self.noise_label)
-        noise_methods = [AugmentationMethodWidget("Гаусс", NoiseAugmentator.gaussian, {"mean": (0, -50, 50, 1), "sigma": (10, 0, 100, 1)}),
+        noise_label = QLabel("Зашумление")
+        noise_box.addWidget(noise_label)
+        methods = [AugmentationMethodWidget("Гаусс", NoiseAugmentator.gaussian, {"mean": (0, -50, 50, 1), "sigma": (10, 0, 100, 1)}),
                          AugmentationMethodWidget("Релей", NoiseAugmentator.rayleigh, {"scale": (20, -50, 50, 1)}),
                          AugmentationMethodWidget("Экспоненциальный шум", NoiseAugmentator.exponential, {"lam": (0.02, -50, 50, 0.01)})
                          ]
-        for method in noise_methods:
+        for method in methods:
             self.methods.append(method)
             noise_box.addWidget(method)
-
+        methods.clear()
         controls_layout.addLayout(noise_box)
 
-        # Дальше всякие методы
+        # Удаление шума
+
+        denoise_box = QVBoxLayout()
+        denoise_box.setAlignment(Qt.AlignTop)
+        
+        denoise_label = QLabel("Удаление шума")
+        denoise_box.addWidget(denoise_label)
+        methods = [AugmentationMethodWidget("Усреднение", DenoiseAugmentor.average, {"ksize": (3, -10, 10, 2)}),
+                         AugmentationMethodWidget("Фильтр Гаусса", DenoiseAugmentor.gaussian, {"ksize": (3, -10, 10, 2), "sigma": (0, -10, 10, 1)}),
+                         AugmentationMethodWidget("Медианный фильтр", DenoiseAugmentor.median, {"ksize": (3, -10, 10, 2)})
+                         ]
+        for method in methods:
+            self.methods.append(method)
+            denoise_box.addWidget(method)
+        methods.clear()
+        controls_layout.addLayout(denoise_box)
+
+        # Преобразование на основе гистограммы RGB
+
+        rgb_box = QVBoxLayout()
+        rgb_box.setAlignment(Qt.AlignTop)
+        
+        rgb_box.addWidget(QLabel("Преобразование на основе гистограммы RGB"))
+        methods = [AugmentationMethodWidget("Эквализация", HistogramAugmentator.equalize),
+                         AugmentationMethodWidget("Статическая цветокоррекция", HistogramAugmentator.statistical),
+                         ]
+        for method in methods:
+            self.methods.append(method)
+            rgb_box.addWidget(method)
+        methods.clear()
+        controls_layout.addLayout(rgb_box)
+
+        # Преобразование цветности
+
+        color_box = QVBoxLayout()
+        color_box.setAlignment(Qt.AlignTop)
+        
+        color_box.addWidget(QLabel("Преобразование цветности"))
+        group = AugmentationMethodGroup("stas", [AugmentationMethodRadio("В серый", ColorTransformAugmentor.to_gray),
+                    AugmentationMethodRadio("В бинарный", ColorTransformAugmentor.to_binary, {"treshold": (127, 0, 255, 1)}),
+                         ])
+        color_box.addWidget(group)
+        self.methods.append(group)
+        controls_layout.addLayout(color_box)
+
+        # Восстановление цветности
+        controls_layout2 = QHBoxLayout()
+        controls_layout2.setAlignment(Qt.AlignCenter)
+        
+        rcolor_box = QVBoxLayout()
+        rcolor_box.setAlignment(Qt.AlignTop)
+        
+        rcolor_box.addWidget(QLabel("Восстановление цветности"))
+        methods = [AugmentationMethodWidget("Восстановление цветности", ColorRestorationAugmentor.restore_image)
+                         ]
+        for method in methods:
+            self.methods.append(method)
+            rcolor_box.addWidget(method)
+        methods.clear()
+        controls_layout2.addLayout(rcolor_box)
+
+        # Градиенты изображения
+
+        grad_box = QVBoxLayout()
+        grad_box.setAlignment(Qt.AlignTop)
+        
+        grad_box.addWidget(QLabel("Градиенты изображения"))
+        methods = [AugmentationMethodWidget("Оператор Собеля", GradientAugmentor.sobel_unsharp, {"alpha": (1, -10, 10, 1)}),
+                         AugmentationMethodWidget("Оператор Превитта", GradientAugmentor.prewitt_unsharp, {"alpha": (1, -10, 10, 1)}),
+                         ]
+        for method in methods:
+            self.methods.append(method)
+            grad_box.addWidget(method)
+        methods.clear()
+        controls_layout2.addLayout(grad_box)
+
+        # Смешение изображений
+
+        blend_box = QVBoxLayout()
+        blend_box.setAlignment(Qt.AlignTop)
+    
+        blend_box.addWidget(QLabel("Смешение изображений"))
+        methods = [AugmentationMethodWidget("Эквализация", DenoiseAugmentor.average, {"ksize": (3, -10, 10, 2)}),
+                         AugmentationMethodWidget("Статическая цветокоррекция", DenoiseAugmentor.gaussian, {"ksize": (3, -10, 10, 2), "sigma": (0, -10, 10, 1)}),
+                         ]
+        for method in methods:
+            self.methods.append(method)
+            blend_box.addWidget(method)
+        methods.clear()
+        controls_layout2.addLayout(blend_box)
+
+        # Геометрические преобразования
+
+        geom_box = QVBoxLayout()
+        geom_box.setAlignment(Qt.AlignTop)
+        
+        geom_box.addWidget(QLabel("Геометрические преобразования"))
+        methods = [AugmentationMethodWidget("Масштабирование", GeometricAugmentor.scale, {"fx": (2, 0, 10, 1), "fy": (2, 0, 10, 1)}),
+                         AugmentationMethodWidget("Перенос/Поворот", GeometricAugmentor.translate_rotate, {"tx": (1, -10, 10, 1), "ty": (1, -10, 10, 1), "angle": (90, -360, 360, 15)}),
+                         AugmentationMethodWidget("Эффект \"Стекла\"", GeometricAugmentor.glass_effect),
+                         AugmentationMethodWidget("Motion blur", GeometricAugmentor.motion_blur),
+                         AugmentationMethodWidget("Волна 1", GeometricAugmentor.wave1),
+                         AugmentationMethodWidget("Волна 2", GeometricAugmentor.wave2),
+                         ]
+        for method in methods:
+            self.methods.append(method)
+            geom_box.addWidget(method)
+        methods.clear()
+        controls_layout2.addLayout(geom_box)
+
+
+        # Одно наше преорабзование пока хз какое
+
+        our_box = QVBoxLayout()
+        our_box.setAlignment(Qt.AlignTop)
+        
+        our_box.addWidget(QLabel("Русификатор изображения"))
+        methods = [AugmentationMethodWidget("Русификация", RussifierAugmentor.russifier, {"alpha": (0.5, 0, 1, 0.1)})
+                         ]
+        for method in methods:
+            self.methods.append(method)
+            our_box.addWidget(method)
+        methods.clear()
+        controls_layout2.addLayout(our_box)
+
+
+
 
         main_layout.addLayout(controls_layout)
+        main_layout.addLayout(controls_layout2)
 
         # ----------------- Кнопки --------------------
         buttons_layout = QHBoxLayout()

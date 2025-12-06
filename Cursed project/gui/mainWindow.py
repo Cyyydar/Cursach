@@ -84,7 +84,7 @@ class MainWindow(QMainWindow):
         
         noise_label = QLabel("Зашумление")
         noise_box.addWidget(noise_label)
-        methods = [AugmentationMethodWidget("Гаусс", NoiseAugmentator.gaussian, {"mean": (0, -50, 50, 1), "sigma": (10, 0, 100, 1)}),
+        methods = [AugmentationMethodWidget("Гаусс", NoiseAugmentator.gaussian, {"mean": (0, -50, 50, 1), "std": (10, 0, 100, 1)}),
                          AugmentationMethodWidget("Релей", NoiseAugmentator.rayleigh, {"scale": (20, -50, 50, 1)}),
                          AugmentationMethodWidget("Экспоненциальный шум", NoiseAugmentator.exponential, {"lam": (0.02, -50, 50, 0.01)})
                          ]
@@ -101,9 +101,9 @@ class MainWindow(QMainWindow):
         
         denoise_label = QLabel("Удаление шума")
         denoise_box.addWidget(denoise_label)
-        methods = [AugmentationMethodWidget("Усреднение", DenoiseAugmentor.average, {"ksize": (3, -10, 10, 2)}),
-                         AugmentationMethodWidget("Фильтр Гаусса", DenoiseAugmentor.gaussian, {"ksize": (3, -10, 10, 2), "sigma": (0, -10, 10, 1)}),
-                         AugmentationMethodWidget("Медианный фильтр", DenoiseAugmentor.median, {"ksize": (3, -10, 10, 2)})
+        methods = [AugmentationMethodWidget("Усреднение", DenoiseAugmentor.average, {"ksize": (3, -11, 11, 2)}),
+                         AugmentationMethodWidget("Фильтр Гаусса", DenoiseAugmentor.gaussian, {"ksize": (3, -11, 11, 2), "sigma": (0, -10, 10, 1)}),
+                         AugmentationMethodWidget("Медианный фильтр", DenoiseAugmentor.median, {"ksize": (3, -11, 11, 2)})
                          ]
         for method in methods:
             self.methods.append(method)
@@ -133,7 +133,7 @@ class MainWindow(QMainWindow):
         
         color_box.addWidget(QLabel("Преобразование цветности"))
         group = AugmentationMethodGroup("stas", [AugmentationMethodRadio("В серый", ColorTransformAugmentor.to_gray),
-                    AugmentationMethodRadio("В бинарный", ColorTransformAugmentor.to_binary, {"treshold": (127, 0, 255, 1)}),
+                    AugmentationMethodRadio("В бинарный", ColorTransformAugmentor.to_binary, {"threshold": (127, 0, 255, 1)}),
                          ])
         color_box.addWidget(group)
         self.methods.append(group)

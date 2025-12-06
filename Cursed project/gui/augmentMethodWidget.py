@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QCheckBox, QPushButton, QDialog, QFormLayout, QDoubleSpinBox, QLabel
+from PyQt5.QtCore import Qt
 
 class AugmentationMethodWidget(QWidget):
     def __init__(self, name: str, method_callable, parameters: dict = None):
@@ -7,6 +8,7 @@ class AugmentationMethodWidget(QWidget):
         self.parameters = parameters or {}
         
         self.layout = QHBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
         
         self.checkbox = QCheckBox(name)
@@ -20,23 +22,35 @@ class AugmentationMethodWidget(QWidget):
             self.layout.addWidget(self.settings_button)
         
         self.param_widgets = {}
-
-    def open_settings(self):
-        """Открывает попап для редактирования параметров."""
-        self.dialog = QDialog(self)
-        self.dialog.setWindowTitle("Параметры метода")
-        form = QFormLayout(self.dialog)
-        
-        self.param_widgets = {}
         for param_name, (default, min_val, max_val, step) in self.parameters.items():
             spin = QDoubleSpinBox()
             spin.setRange(min_val, max_val)
             spin.setSingleStep(step)
             spin.setValue(default)
-            form.addRow(QLabel(param_name), spin)
             self.param_widgets[param_name] = spin
+
+        self.dialog = QDialog(self)
+        flags = Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
+        self.dialog.setWindowFlags(flags)
         
-        self.dialog.exec_()
+        self.dialog.setWindowTitle("Параметры")
+        form = QFormLayout(self.dialog)
+
+        for name, widget in self.param_widgets.items():
+            form.addRow(QLabel(name), widget)
+
+
+        btn_ok = QPushButton("OK")
+        btn_ok.clicked.connect(self.close)
+
+    def open_settings(self):
+        """Открывает попап для редактирования параметров."""
+        if self.dialog is None:
+            raise("Окно не создано")
+            
+        self.dialog.show()
+        self.dialog.raise_()
+        self.dialog.activateWindow()
 
     def is_enabled(self):
         return self.checkbox.isChecked()

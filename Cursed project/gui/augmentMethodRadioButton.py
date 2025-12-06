@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QRadioButton, QPushButton, 
     QDialog, QFormLayout, QDoubleSpinBox, QLabel, QButtonGroup
 )
+from PyQt5.QtCore import Qt
 
 class AugmentationMethodRadio(QWidget):
     """
@@ -13,6 +14,7 @@ class AugmentationMethodRadio(QWidget):
         self.parameters = parameters or {}
 
         self.layout = QHBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
         self.radio = QRadioButton(name)
@@ -25,22 +27,31 @@ class AugmentationMethodRadio(QWidget):
             self.layout.addWidget(self.settings_button)
 
         self.param_widgets = {}
-
-    def open_settings(self):
-        self.dialog = QDialog(self)
-        self.dialog.setWindowTitle("Параметры метода")
-        form = QFormLayout(self.dialog)
-
-        self.param_widgets = {}
         for param_name, (default, min_val, max_val, step) in self.parameters.items():
             spin = QDoubleSpinBox()
             spin.setRange(min_val, max_val)
             spin.setSingleStep(step)
             spin.setValue(default)
-            form.addRow(QLabel(param_name), spin)
             self.param_widgets[param_name] = spin
 
-        self.dialog.exec_()
+        self.dialog = QDialog(self)
+        flags = Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
+        self.dialog.setWindowFlags(flags)
+
+        self.dialog.setWindowTitle("Параметры")
+        form = QFormLayout(self.dialog)
+
+        for name, widget in self.param_widgets.items():
+            form.addRow(QLabel(name), widget)
+
+    def open_settings(self):
+        """Открывает попап для редактирования параметров."""
+        if self.dialog is None:
+            raise("Окно не создано")
+            
+        self.dialog.show()
+        self.dialog.raise_()
+        self.dialog.activateWindow()
 
     def is_selected(self):
         return self.radio.isChecked()
@@ -64,7 +75,14 @@ class AugmentationMethodGroup(QWidget):
         self.group.setExclusive(True)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(3)
         self.setLayout(layout)
+
+
+        none = AugmentationMethodRadio("None", None)
+        layout.addWidget(none)
+        self.group.addButton(none.radio)
 
         # Добавляем методы
         for m in self.methods:

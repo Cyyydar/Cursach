@@ -6,6 +6,7 @@ class DenoiseAugmentor:
 
     @staticmethod
     def average(img: np.ndarray, ksize: int = 3) -> np.ndarray:
+        ksize = int(ksize)
         if ksize % 2 == 0:
             raise ValueError("ksize должен быть нечетным")
 
@@ -13,6 +14,7 @@ class DenoiseAugmentor:
 
     @staticmethod
     def gaussian(img: np.ndarray, ksize: int = 3, sigma: float = 0) -> np.ndarray:
+        ksize = int(ksize)
         if ksize % 2 == 0:
             raise ValueError("ksize должен быть нечетным")
 
@@ -20,6 +22,7 @@ class DenoiseAugmentor:
 
     @staticmethod
     def median(img: np.ndarray, ksize: int = 3) -> np.ndarray:
+        ksize = int(ksize)
         if ksize % 2 == 0:
             raise ValueError("ksize должен быть нечетным")
 

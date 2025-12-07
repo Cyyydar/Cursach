@@ -20,7 +20,11 @@ class AugmentationMethodWidget(QWidget):
             self.settings_button.setFixedWidth(25)
             self.settings_button.clicked.connect(self.open_settings)
             self.layout.addWidget(self.settings_button)
+
+        self.create_param_window()
         
+
+    def create_param_window(self):
         self.param_widgets = {}
         for param_name, (default, min_val, max_val, step) in self.parameters.items():
             spin = QDoubleSpinBox()
@@ -34,14 +38,11 @@ class AugmentationMethodWidget(QWidget):
         self.dialog.setWindowFlags(flags)
         
         self.dialog.setWindowTitle("Параметры")
-        form = QFormLayout(self.dialog)
+        self.form = QFormLayout(self.dialog)
 
         for name, widget in self.param_widgets.items():
-            form.addRow(QLabel(name), widget)
+            self.form.addRow(QLabel(name), widget)
 
-
-        btn_ok = QPushButton("OK")
-        btn_ok.clicked.connect(self.close)
 
     def open_settings(self):
         """Открывает попап для редактирования параметров."""

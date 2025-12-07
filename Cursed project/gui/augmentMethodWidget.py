@@ -2,16 +2,18 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QCheckBox, QPushButton, QDialo
 from PyQt5.QtCore import Qt
 
 class AugmentationMethodWidget(QWidget):
-    def __init__(self, name: str, method_callable, parameters: dict = None):
+    def __init__(self, name: str, method_callable, parameters: dict = None, on_change_callable=None):
         super().__init__()
         self.method = method_callable
         self.parameters = parameters or {}
         
         self.layout = QHBoxLayout()
+        self.on_change_callable = on_change_callable
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
         
         self.checkbox = QCheckBox(name)
+        self.checkbox.stateChanged.connect(self._trigger)
         self.layout.addWidget(self.checkbox)
         
         # Кнопка для открытия настроек
@@ -31,6 +33,7 @@ class AugmentationMethodWidget(QWidget):
             spin.setRange(min_val, max_val)
             spin.setSingleStep(step)
             spin.setValue(default)
+            spin.valueChanged.connect(self._trigger)
             self.param_widgets[param_name] = spin
 
         self.dialog = QDialog(self)
@@ -64,3 +67,8 @@ class AugmentationMethodWidget(QWidget):
             params = self.get_params()
             return self.method(image, **params)
         return image
+    
+    def _trigger(self):
+        """Вызывается при изменении состояния или параметров."""
+        if self.on_change_callable:
+            self.on_change_callable()

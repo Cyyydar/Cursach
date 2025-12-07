@@ -85,9 +85,9 @@ class MainWindow(QMainWindow):
         
         noise_label = QLabel("Зашумление")
         noise_box.addWidget(noise_label)
-        methods = [AugmentationMethodCheckBoxYIQ("Гаусс", NoiseAugmentator.gaussian, {"mean": (0, -50, 50, 1), "std": (10, 0, 100, 1)}),
-                         AugmentationMethodCheckBoxYIQ("Релей", NoiseAugmentator.rayleigh, {"scale": (20, -50, 50, 1)}),
-                         AugmentationMethodCheckBoxYIQ("Экспоненциальный шум", NoiseAugmentator.exponential, {"lam": (0.02, -50, 50, 0.01)})
+        methods = [AugmentationMethodCheckBoxYIQ("Гаусс", NoiseAugmentator.gaussian, {"mean": (0, -50, 50, 1), "std": (10, 0, 100, 1)}, self.process),
+                         AugmentationMethodCheckBoxYIQ("Релей", NoiseAugmentator.rayleigh, {"scale": (20, -50, 50, 1)}, self.process),
+                         AugmentationMethodCheckBoxYIQ("Экспоненциальный шум", NoiseAugmentator.exponential, {"lam": (0.02, -50, 50, 0.01)}, self.process)
                          ]
         for method in methods:
             self.methods.append(method)
@@ -102,9 +102,9 @@ class MainWindow(QMainWindow):
         
         denoise_label = QLabel("Удаление шума")
         denoise_box.addWidget(denoise_label)
-        methods = [AugmentationMethodCheckBoxYIQ("Усреднение", DenoiseAugmentor.average, {"ksize": (3, -11, 11, 2)}),
-                         AugmentationMethodCheckBoxYIQ("Фильтр Гаусса", DenoiseAugmentor.gaussian, {"ksize": (3, -11, 11, 2), "sigma": (0, -10, 10, 1)}),
-                         AugmentationMethodCheckBoxYIQ("Медианный фильтр", DenoiseAugmentor.median, {"ksize": (3, -11, 11, 2)})
+        methods = [AugmentationMethodCheckBoxYIQ("Усреднение", DenoiseAugmentor.average, {"ksize": (3, -11, 11, 2)}, self.process),
+                         AugmentationMethodCheckBoxYIQ("Фильтр Гаусса", DenoiseAugmentor.gaussian, {"ksize": (3, -11, 11, 2), "sigma": (0, -10, 10, 1)}, self.process),
+                         AugmentationMethodCheckBoxYIQ("Медианный фильтр", DenoiseAugmentor.median, {"ksize": (3, -11, 11, 2)}, self.process)
                          ]
         for method in methods:
             self.methods.append(method)
@@ -118,8 +118,8 @@ class MainWindow(QMainWindow):
         rgb_box.setAlignment(Qt.AlignTop)
         
         rgb_box.addWidget(QLabel("Преобразование на основе гистограммы RGB"))
-        methods = [AugmentationMethodCheckBoxYIQ("Эквализация", HistogramAugmentator.equalize),
-                         AugmentationMethodCheckBoxYIQ("Статическая цветокоррекция", HistogramAugmentator.statistical),
+        methods = [AugmentationMethodCheckBoxYIQ("Эквализация", HistogramAugmentator.equalize, on_change_callable=self.process),
+                         AugmentationMethodCheckBoxYIQ("Статическая цветокоррекция", HistogramAugmentator.statistical, on_change_callable=self.process),
                          ]
         for method in methods:
             self.methods.append(method)
@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
         rcolor_box.setAlignment(Qt.AlignTop)
         
         rcolor_box.addWidget(QLabel("Восстановление цветности"))
-        methods = [AugmentationMethodWidget("Восстановление цветности", ColorRestorationAugmentor.restore_image)
+        methods = [AugmentationMethodWidget("Восстановление цветности", ColorRestorationAugmentor.restore_image, on_change_callable=self.process)
                          ]
         for method in methods:
             self.methods.append(method)
@@ -162,8 +162,8 @@ class MainWindow(QMainWindow):
         grad_box.setAlignment(Qt.AlignTop)
         
         grad_box.addWidget(QLabel("Градиенты изображения"))
-        methods = [AugmentationMethodWidget("Оператор Собеля", GradientAugmentor.sobel_unsharp, {"alpha": (1, -10, 10, 1)}),
-                         AugmentationMethodWidget("Оператор Превитта", GradientAugmentor.prewitt_unsharp, {"alpha": (1, -10, 10, 1)}),
+        methods = [AugmentationMethodWidget("Оператор Собеля", GradientAugmentor.sobel_unsharp, {"alpha": (1, -10, 10, 1)}, self.process),
+                         AugmentationMethodWidget("Оператор Превитта", GradientAugmentor.prewitt_unsharp, {"alpha": (1, -10, 10, 1)}, self.process),
                          ]
         for method in methods:
             self.methods.append(method)
@@ -177,8 +177,8 @@ class MainWindow(QMainWindow):
         blend_box.setAlignment(Qt.AlignTop)
     
         blend_box.addWidget(QLabel("Смешение изображений"))
-        methods = [AugmentationMethodWidget("Эквализация", DenoiseAugmentor.average, {"ksize": (3, -10, 10, 2)}),
-                         AugmentationMethodWidget("Статическая цветокоррекция", DenoiseAugmentor.gaussian, {"ksize": (3, -10, 10, 2), "sigma": (0, -10, 10, 1)}),
+        methods = [AugmentationMethodWidget("Эквализация", DenoiseAugmentor.average, {"ksize": (3, -10, 10, 2)}, self.process),
+                         AugmentationMethodWidget("Статическая цветокоррекция", DenoiseAugmentor.gaussian, {"ksize": (3, -10, 10, 2), "sigma": (0, -10, 10, 1)}, self.process),
                          ]
         for method in methods:
             self.methods.append(method)
@@ -192,12 +192,12 @@ class MainWindow(QMainWindow):
         geom_box.setAlignment(Qt.AlignTop)
         
         geom_box.addWidget(QLabel("Геометрические преобразования"))
-        methods = [AugmentationMethodWidget("Масштабирование", GeometricAugmentor.scale, {"fx": (2, 0, 10, 1), "fy": (2, 0, 10, 1)}),
-                         AugmentationMethodWidget("Перенос/Поворот", GeometricAugmentor.translate_rotate, {"tx": (1, -10, 10, 1), "ty": (1, -10, 10, 1), "angle": (90, -360, 360, 15)}),
-                         AugmentationMethodWidget("Эффект \"Стекла\"", GeometricAugmentor.glass_effect),
-                         AugmentationMethodWidget("Motion blur", GeometricAugmentor.motion_blur),
-                         AugmentationMethodWidget("Волна 1", GeometricAugmentor.wave1),
-                         AugmentationMethodWidget("Волна 2", GeometricAugmentor.wave2),
+        methods = [AugmentationMethodWidget("Масштабирование", GeometricAugmentor.scale, {"fx": (2, 0, 10, 1), "fy": (2, 0, 10, 1)}, self.process),
+                         AugmentationMethodWidget("Перенос/Поворот", GeometricAugmentor.translate_rotate, {"tx": (1, -10, 10, 1), "ty": (1, -10, 10, 1), "angle": (90, -360, 360, 15)}, self.process),
+                         AugmentationMethodWidget("Эффект \"Стекла\"", GeometricAugmentor.glass_effect, on_change_callable=self.process),
+                         AugmentationMethodWidget("Motion blur", GeometricAugmentor.motion_blur, on_change_callable=self.process),
+                         AugmentationMethodWidget("Волна 1", GeometricAugmentor.wave1, on_change_callable=self.process),
+                         AugmentationMethodWidget("Волна 2", GeometricAugmentor.wave2, on_change_callable=self.process),
                          ]
         for method in methods:
             self.methods.append(method)
@@ -212,7 +212,7 @@ class MainWindow(QMainWindow):
         our_box.setAlignment(Qt.AlignTop)
         
         our_box.addWidget(QLabel("Русификатор изображения"))
-        methods = [AugmentationMethodWidget("Русификация", RussifierAugmentor.russifier, {"alpha": (0.5, 0, 1, 0.1)})
+        methods = [AugmentationMethodWidget("Русификация", RussifierAugmentor.russifier, {"alpha": (0.5, 0, 1, 0.1)}, self.process)
                          ]
         for method in methods:
             self.methods.append(method)

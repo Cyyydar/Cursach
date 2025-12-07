@@ -5,8 +5,8 @@ import cv2
 import numpy as np
 
 class AugmentationMethodCheckBoxYIQ(AugmentationMethodWidget):
-    def __init__(self, name: str, method_callable, parameters: dict = None):
-        super().__init__(name, method_callable, parameters)
+    def __init__(self, name: str, method_callable, parameters: dict = None, on_change_callable=None):
+        super().__init__(name, method_callable, parameters, on_change_callable)
 
     def create_param_window(self):
         super().create_param_window()

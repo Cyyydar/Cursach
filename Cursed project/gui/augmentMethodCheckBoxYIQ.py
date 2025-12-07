@@ -12,14 +12,17 @@ class AugmentationMethodCheckBoxYIQ(AugmentationMethodWidget):
         super().create_param_window()
         self.Y_chbox = QCheckBox()
         self.Y_chbox.setChecked(True)
+        self.Y_chbox.stateChanged.connect(self.on_change_callable)
         self.form.addRow(QLabel("Y"), self.Y_chbox)
 
         self.I_chbox = QCheckBox()
         self.I_chbox.setChecked(True)
+        self.I_chbox.stateChanged.connect(self.on_change_callable)
         self.form.addRow(QLabel("I"), self.I_chbox)
 
         self.Q_chbox = QCheckBox()
         self.Q_chbox.setChecked(True)
+        self.Q_chbox.stateChanged.connect(self.on_change_callable)
         self.form.addRow(QLabel("Q"), self.Q_chbox)
 
     def call_method(self, image):

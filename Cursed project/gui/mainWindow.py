@@ -27,6 +27,7 @@ plugin_path = r"Lib\site-packages\PyQt5\Qt5\plugins\platforms"
 os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = plugin_path
 class MainWindow(QMainWindow):
     path_to_data = "Cursed project\data"
+    files = None
     pic_index = 1
     current_dataset = ""
 
@@ -61,7 +62,9 @@ class MainWindow(QMainWindow):
 
         images_layout.addWidget(self.image_left)
         images_layout.addWidget(self.image_right)
-
+        chooseButton = QPushButton("Выбрать датасет")
+        chooseButton.pressed.connect(self.choose_folder)
+        images_layout.addWidget(chooseButton)
         main_layout.addLayout(images_layout)
 
         # --------------- Блок выбора параметров ----------------
@@ -69,12 +72,14 @@ class MainWindow(QMainWindow):
         controls_layout.setAlignment(Qt.AlignCenter)
 
         # ComboBox выбора набора данных
+        """
         self.dataset_combo = QComboBox()
         self.dataset_combo.addItems(self.get_data_names())
         self.dataset_combo.currentTextChanged.connect(self.change_dataset)
         self.dataset_combo.setFixedWidth(200)
 
         images_layout.addWidget(self.dataset_combo)
+        """
 
         # Методы аугментации
         self.methods = []
@@ -133,8 +138,8 @@ class MainWindow(QMainWindow):
         color_box.setAlignment(Qt.AlignTop)
         
         color_box.addWidget(QLabel("Преобразование цветности"))
-        group = AugmentationMethodGroup("stas", [AugmentationMethodRadio("В серый", ColorTransformAugmentor.to_gray),
-                    AugmentationMethodRadio("В бинарный", ColorTransformAugmentor.to_binary, {"threshold": (127, 0, 255, 1)}),
+        group = AugmentationMethodGroup("stas", [AugmentationMethodRadio("В серый", ColorTransformAugmentor.to_gray, on_change_callable=self.process),
+                    AugmentationMethodRadio("В бинарный", ColorTransformAugmentor.to_binary, {"threshold": (127, 0, 255, 1)}, self.process),
                          ])
         color_box.addWidget(group)
         self.methods.append(group)
@@ -250,6 +255,13 @@ class MainWindow(QMainWindow):
 
     # =============== Методы логики ===========================
 
+    def choose_folder(self):
+        self.path_to_data = QFileDialog.getExistingDirectory(self, "Выберите датасет")
+        self.files = [f for f in os.listdir(self.path_to_data) 
+                      if f.lower().endswith(('.jpg', '.png'))]
+        self.set_left_image(f"{self.path_to_data}\{self.files[self.pic_index]}")
+        self.process()
+
     def get_data_names(self):
         folders = [entry.name for entry in os.scandir(self.path_to_data) if entry.is_dir()]
         return folders
@@ -260,28 +272,28 @@ class MainWindow(QMainWindow):
         self.set_left_image(f"{self.path_to_data}\{text}\{text}_1.jpg")
 
     def button_right(self):
-        if self.current_dataset == "":
+        if self.path_to_data == "Cursed project\data":
             return
 
         if self.pic_index + 1 >= 3000:
             self.pic_index = 1
         else:
             self.pic_index += 1
-        
-        text = self.current_dataset
-        self.set_left_image(f"{self.path_to_data}\{text}\{text}_{self.pic_index}.jpg")
+    
+        self.set_left_image(f"{self.path_to_data}\{self.files[self.pic_index]}")
+        self.process()
 
     def button_left(self):
-        if self.current_dataset == "":
-                    return
+        if self.path_to_data == "Cursed project\data":
+            return
 
         if self.pic_index - 1 <= 0:
             self.pic_index = 3000
         else:
             self.pic_index -= 1
         
-        text = self.current_dataset
-        self.set_left_image(f"{self.path_to_data}\{text}\{text}_{self.pic_index}.jpg")
+        self.set_left_image(f"{self.path_to_data}\{self.files[self.pic_index]}")
+        self.process()
 
         
     def load_image_cv(self, path: str) -> QPixmap:

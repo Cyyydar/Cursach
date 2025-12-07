@@ -7,8 +7,9 @@ class AugmentationMethodWidget(QWidget):
         self.method = method_callable
         self.parameters = parameters or {}
         
-        self.layout = QHBoxLayout()
         self.on_change_callable = on_change_callable
+        
+        self.layout = QHBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
         

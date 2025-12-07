@@ -2,22 +2,26 @@ from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QRadioButton, QPushButton, 
     QDialog, QFormLayout, QDoubleSpinBox, QLabel, QButtonGroup
 )
+from gui.augmentMethodWidget import AugmentationMethodWidget
 from PyQt5.QtCore import Qt
 
-class AugmentationMethodRadio(QWidget):
+class AugmentationMethodRadio(AugmentationMethodWidget):
     """
     Один метод внутри группы.
     """
-    def __init__(self, name: str, method_callable, parameters: dict = None):
-        super().__init__()
+    def __init__(self, name: str, method_callable, parameters: dict = None, on_change_callable=None):
+        QWidget.__init__(self)
         self.method = method_callable
         self.parameters = parameters or {}
+
+        self.on_change_callable = on_change_callable
 
         self.layout = QHBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
         self.radio = QRadioButton(name)
+        self.radio.toggled.connect(self._trigger)
         self.layout.addWidget(self.radio)
 
         if self.parameters:
@@ -32,6 +36,7 @@ class AugmentationMethodRadio(QWidget):
             spin.setRange(min_val, max_val)
             spin.setSingleStep(step)
             spin.setValue(default)
+            spin.valueChanged.connect(self._trigger)
             self.param_widgets[param_name] = spin
 
         self.dialog = QDialog(self)

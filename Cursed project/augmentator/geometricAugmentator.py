@@ -16,6 +16,7 @@ class GeometricAugmentor:
 
     @staticmethod
     def glass_effect(image, block_size=5):
+        block_size = int(block_size)
         h, w = image.shape[:2]
         out = np.zeros_like(image)
         for i in range(0, h, block_size):
@@ -30,6 +31,7 @@ class GeometricAugmentor:
 
     @staticmethod
     def motion_blur(image, size=15):
+        size = int(size)
         kernel = np.zeros((size, size))
         kernel[size//2, :] = np.ones(size)
         kernel /= size
@@ -37,6 +39,8 @@ class GeometricAugmentor:
 
     @staticmethod
     def wave1(image, amplitude=20, period=60):
+        amplitude = int(amplitude)
+        period = int(period)
         h, w = image.shape[:2]
         map_x, map_y = np.meshgrid(np.arange(w), np.arange(h))
         map_x = map_x + amplitude * np.sin(2 * np.pi * map_y / period)
@@ -46,6 +50,8 @@ class GeometricAugmentor:
 
     @staticmethod
     def wave2(image, amplitude=20, period=30):
+        amplitude = int(amplitude)
+        period = int(period)
         h, w = image.shape[:2]
         map_x, map_y = np.meshgrid(np.arange(w), np.arange(h))
         map_x = map_x + amplitude * np.sin(2 * np.pi * map_x / period)

@@ -3,3 +3,10 @@ Include
 Lib
 Scripts
 pyvenv.cfg
+
+*.pyc
+
+# Linux
+bin
+lib64
+lib

@@ -1,11 +1,13 @@
 import os
 import cv2
 from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QLabel, QPushButton,
+    QMainWindow, QWidget, QLabel, QPushButton, QApplication,
     QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout, QCheckBox
 )
 from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThread
+
+
 #from augmentMethodWidget import AugmentationMethodWidget #augmentMethodWidget import AugmentationMethodWidget
 from gui.augmentMethodWidget import AugmentationMethodWidget
 from gui.augmentMethodRadioButton import AugmentationMethodRadio, AugmentationMethodGroup
@@ -62,9 +64,18 @@ class MainWindow(QMainWindow):
 
         images_layout.addWidget(self.image_left)
         images_layout.addWidget(self.image_right)
+
+        import_layout = QVBoxLayout()
+        import_layout.setAlignment(Qt.AlignCenter)
+
         chooseButton = QPushButton("Выбрать датасет")
         chooseButton.pressed.connect(self.choose_folder)
-        images_layout.addWidget(chooseButton)
+        import_layout.addWidget(chooseButton)
+
+        self.data_stat = QLabel()
+        import_layout.addWidget(self.data_stat)
+
+        images_layout.addLayout(import_layout)
         main_layout.addLayout(images_layout)
 
         # --------------- Блок выбора параметров ----------------
@@ -83,6 +94,7 @@ class MainWindow(QMainWindow):
 
         # Методы аугментации
         self.methods = []
+        self.active_filters = []
 
         # Шум
         noise_box = QVBoxLayout()
@@ -199,10 +211,10 @@ class MainWindow(QMainWindow):
         geom_box.addWidget(QLabel("Геометрические преобразования"))
         methods = [AugmentationMethodWidget("Масштабирование", GeometricAugmentor.scale, {"fx": (2, 0, 10, 1), "fy": (2, 0, 10, 1)}, self.process),
                          AugmentationMethodWidget("Перенос/Поворот", GeometricAugmentor.translate_rotate, {"tx": (1, -10, 10, 1), "ty": (1, -10, 10, 1), "angle": (90, -360, 360, 15)}, self.process),
-                         AugmentationMethodWidget("Эффект \"Стекла\"", GeometricAugmentor.glass_effect, on_change_callable=self.process),
-                         AugmentationMethodWidget("Motion blur", GeometricAugmentor.motion_blur, on_change_callable=self.process),
-                         AugmentationMethodWidget("Волна 1", GeometricAugmentor.wave1, on_change_callable=self.process),
-                         AugmentationMethodWidget("Волна 2", GeometricAugmentor.wave2, on_change_callable=self.process),
+                         AugmentationMethodWidget("Эффект \"Стекла\"", GeometricAugmentor.glass_effect, {"block_size": (5,1,25,1)}, self.process),
+                         AugmentationMethodWidget("Motion blur", GeometricAugmentor.motion_blur, {"size": (15,1,50,1)}, self.process),
+                         AugmentationMethodWidget("Волна 1", GeometricAugmentor.wave1, {"amplitude": (20,0,100,5), "period": (60,0,200,5)}, self.process),
+                         AugmentationMethodWidget("Волна 2", GeometricAugmentor.wave2, {"amplitude": (20,0,100,5), "period": (30,0,200,5)},self.process),
                          ]
         for method in methods:
             self.methods.append(method)
@@ -211,7 +223,7 @@ class MainWindow(QMainWindow):
         controls_layout2.addLayout(geom_box)
 
 
-        # Одно наше преорабзование пока хз какое
+        # Одно наше преорабзование
 
         our_box = QVBoxLayout()
         our_box.setAlignment(Qt.AlignTop)
@@ -243,7 +255,7 @@ class MainWindow(QMainWindow):
 
         self.process_button = QPushButton("Выполнить обработку")
         self.process_button.setFixedSize(250, 40)
-        self.process_button.clicked.connect(self.process)
+        self.process_button.clicked.connect(self.startProcessAll)
         buttons_layout.addWidget(self.process_button, alignment=Qt.AlignCenter)
 
         self.forward_button = QPushButton("Вперед ->")
@@ -259,7 +271,7 @@ class MainWindow(QMainWindow):
         self.path_to_data = QFileDialog.getExistingDirectory(self, "Выберите датасет")
         self.files = [f for f in os.listdir(self.path_to_data) 
                       if f.lower().endswith(('.jpg', '.png'))]
-        self.set_left_image(f"{self.path_to_data}\{self.files[self.pic_index]}")
+        self.set_left_image(os.path.join(self.path_to_data,self.files[self.pic_index]))
         self.process()
 
     def get_data_names(self):
@@ -280,7 +292,7 @@ class MainWindow(QMainWindow):
         else:
             self.pic_index += 1
     
-        self.set_left_image(f"{self.path_to_data}\{self.files[self.pic_index]}")
+        self.set_left_image(os.path.join(self.path_to_data,self.files[self.pic_index]))
         self.process()
 
     def button_left(self):
@@ -292,7 +304,7 @@ class MainWindow(QMainWindow):
         else:
             self.pic_index -= 1
         
-        self.set_left_image(f"{self.path_to_data}\{self.files[self.pic_index]}")
+        self.set_left_image(os.path.join(self.path_to_data,self.files[self.pic_index]))
         self.process()
 
         
@@ -341,19 +353,35 @@ class MainWindow(QMainWindow):
 
     def process(self):
         """Обработка данных."""
-        #dataset = self.dataset_combo.currentText()
-        #method = self.processing_combo.currentText()
-        
-        #print("Выбран набор данных:", dataset)
-        #print("Выбран метод обработки:", method)
+
         processed_image = self.current_image
+        self.active_filters = []
         for method in self.methods:
+            if method.is_enabled():
+                self.active_filters.append(method)
             processed_image = method.call_method(processed_image)
-        #NoiseAugmentator.gaussian() 
         self.set_right_image(self.convert_cv_in_qt(processed_image))
 
+        self.data_stat.setText(f"{self.path_to_data} : {len(self.files)}")
 
-        # Здесь будет твоя логика обработки
-        # result = process_data(dataset, method)
-        # self.set_right_image(result_path)
-    
+    def startProcessAll(self):
+        folder = QFileDialog.getExistingDirectory()
+        if folder:
+            self.save_path = folder
+            self.thread = QThread()
+            self.thread.run = lambda: self.processAll()
+            self.thread.start()
+
+    def processAll(self):
+        os.makedirs(self.save_path, exist_ok=True)
+        for img in sorted(self.files):
+            self.set_left_image(os.path.join(self.path_to_data, img))
+            processed_image = self.current_image
+            file_name = img
+            for method in self.active_filters:
+                if method.is_enabled():
+                    processed_image = method.call_method(processed_image)
+                    file_name = method.get_name() + "_" + file_name
+            self.set_right_image(self.convert_cv_in_qt(processed_image))
+            cv2.imwrite(os.path.join(self.save_path, file_name), processed_image)
+            #print(os.path.join(self.save_path, file_name))

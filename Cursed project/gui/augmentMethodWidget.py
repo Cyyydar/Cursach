@@ -9,6 +9,7 @@ class AugmentationMethodWidget(QWidget):
         
         self.on_change_callable = on_change_callable
         
+        self.name = name
         self.layout = QHBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
@@ -47,6 +48,8 @@ class AugmentationMethodWidget(QWidget):
         for name, widget in self.param_widgets.items():
             self.form.addRow(QLabel(name), widget)
 
+    def get_name(self) -> str:
+        return self.name
 
     def open_settings(self):
         """Открывает попап для редактирования параметров."""

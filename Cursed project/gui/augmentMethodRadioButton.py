@@ -16,6 +16,7 @@ class AugmentationMethodRadio(AugmentationMethodWidget):
 
         self.on_change_callable = on_change_callable
 
+        self.name = name
         self.layout = QHBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
@@ -85,14 +86,25 @@ class AugmentationMethodGroup(QWidget):
         self.setLayout(layout)
 
 
-        none = AugmentationMethodRadio("None", None)
-        layout.addWidget(none)
-        self.group.addButton(none.radio)
+        self.none = AugmentationMethodRadio("None", None)
+        self.none.radio.setChecked(True)
+        layout.addWidget(self.none)
+        self.group.addButton(self.none.radio)
 
         # Добавляем методы
         for m in self.methods:
             layout.addWidget(m)
             self.group.addButton(m.radio)
+    def is_enabled(self):
+        if self.none.radio.isChecked():
+            return False
+        return True
+    
+    def get_name(self):
+        for method in self.methods:
+            if method.radio.isChecked():
+                return method.name
+        return "None"
 
     def get_selected_method(self):
         """

@@ -10,6 +10,12 @@ class AugmentationMethodCheckBoxYIQ(AugmentationMethodWidget):
 
     def create_param_window(self):
         super().create_param_window()
+        if not self.parameters:
+            self.settings_button = QPushButton("^")
+            self.settings_button.setFixedWidth(25)
+            self.settings_button.clicked.connect(self.open_settings)
+            self.layout.addWidget(self.settings_button)
+
         self.Y_chbox = QCheckBox()
         self.Y_chbox.setChecked(True)
         self.Y_chbox.stateChanged.connect(self.on_change_callable)
@@ -41,6 +47,8 @@ class AugmentationMethodCheckBoxYIQ(AugmentationMethodWidget):
             yiq[:, :, 1] = self.method(yiq[:, :, 1], **params)
         if self.Q_chbox.isChecked():
             yiq[:, :, 2] = self.method(yiq[:, :, 2], **params)
+        print(yiq[0])
+
 
         # Обратно в RGB
         return self.yiq_to_rgb(yiq)

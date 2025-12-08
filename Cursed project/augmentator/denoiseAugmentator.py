@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+from scipy.ndimage import median_filter
 
 class DenoiseAugmentor:
 
@@ -25,5 +25,5 @@ class DenoiseAugmentor:
         ksize = int(ksize)
         if ksize % 2 == 0:
             raise ValueError("ksize должен быть нечетным")
-
-        return cv2.medianBlur(img, ksize)
+        filtered = median_filter(img, size=ksize)
+        return filtered

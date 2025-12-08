@@ -7,11 +7,15 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt, QThread
 
+#TODO: Сделать восстановление цветности через специальную кнопку, которая вызывает выбор образца
+#TODO: Сделать отдельную логику для смешения изображений
+#TODO: Доделать сохранение в 3 группы
 
 #from augmentMethodWidget import AugmentationMethodWidget #augmentMethodWidget import AugmentationMethodWidget
 from gui.augmentMethodWidget import AugmentationMethodWidget
 from gui.augmentMethodRadioButton import AugmentationMethodRadio, AugmentationMethodGroup
 from gui.augmentMethodCheckBoxYIQ import AugmentationMethodCheckBoxYIQ
+from gui.rangeSlider import RangeSlider
 
 from augmentator.noiseAugmentator import NoiseAugmentator
 from augmentator.denoiseAugmentator import DenoiseAugmentor
@@ -75,6 +79,14 @@ class MainWindow(QMainWindow):
         self.data_stat = QLabel()
         import_layout.addWidget(self.data_stat)
 
+
+        self.percent_stat = QLabel()
+        import_layout.addWidget(self.percent_stat)
+        self.range = RangeSlider()
+        self.range.valueChanged.connect(self.changePercent)
+        self.changePercent()
+
+        import_layout.addWidget(self.range)
         images_layout.addLayout(import_layout)
         main_layout.addLayout(images_layout)
 
@@ -102,9 +114,9 @@ class MainWindow(QMainWindow):
         
         noise_label = QLabel("Зашумление")
         noise_box.addWidget(noise_label)
-        methods = [AugmentationMethodCheckBoxYIQ("Гаусс", NoiseAugmentator.gaussian, {"mean": (0, -50, 50, 1), "std": (10, 0, 100, 1)}, self.process),
-                         AugmentationMethodCheckBoxYIQ("Релей", NoiseAugmentator.rayleigh, {"scale": (20, -50, 50, 1)}, self.process),
-                         AugmentationMethodCheckBoxYIQ("Экспоненциальный шум", NoiseAugmentator.exponential, {"lam": (0.02, -50, 50, 0.01)}, self.process)
+        methods = [AugmentationMethodCheckBoxYIQ("Гаусс", NoiseAugmentator.gaussian_channel, {"mean": (0, -50, 50, 0.05), "std": (0.10, 0, 50, 0.05)}, self.process),
+                         AugmentationMethodCheckBoxYIQ("Релей", NoiseAugmentator.rayleigh_channel, {"scale": (0.2, -50, 50, 0.1)}, self.process),
+                         AugmentationMethodCheckBoxYIQ("Экспоненциальный шум", NoiseAugmentator.exponential_channel, {"scale": (0.1, -50, 50, 0.05)}, self.process)
                          ]
         for method in methods:
             self.methods.append(method)
@@ -135,8 +147,8 @@ class MainWindow(QMainWindow):
         rgb_box.setAlignment(Qt.AlignTop)
         
         rgb_box.addWidget(QLabel("Преобразование на основе гистограммы RGB"))
-        methods = [AugmentationMethodCheckBoxYIQ("Эквализация", HistogramAugmentator.equalize, on_change_callable=self.process),
-                         AugmentationMethodCheckBoxYIQ("Статическая цветокоррекция", HistogramAugmentator.statistical, on_change_callable=self.process),
+        methods = [AugmentationMethodCheckBoxYIQ("Эквализация", HistogramAugmentator.equalize_channel, on_change_callable=self.process),
+                         AugmentationMethodCheckBoxYIQ("Статическая цветокоррекция", HistogramAugmentator.statistical_channel, on_change_callable=self.process),
                          ]
         for method in methods:
             self.methods.append(method)
@@ -266,6 +278,15 @@ class MainWindow(QMainWindow):
         main_layout.addLayout(buttons_layout)
 
     # =============== Методы логики ===========================
+
+    def changePercent(self):
+        l, r = self.range.values()
+        self.train_perc = l
+        self.val_perc = r - l
+        self.test_perc = self.range._max - r
+
+        self.percent_stat.setText(f"{self.train_perc} - {self.val_perc} - {self.test_perc}")
+        
 
     def choose_folder(self):
         self.path_to_data = QFileDialog.getExistingDirectory(self, "Выберите датасет")

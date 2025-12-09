@@ -6,9 +6,6 @@ from gui.augmentMethodWidget import AugmentationMethodWidget
 from PyQt5.QtCore import Qt
 
 class AugmentationMethodRadio(AugmentationMethodWidget):
-    """
-    Один метод внутри группы.
-    """
     def __init__(self, name: str, method_callable, parameters: dict = None, on_change_callable=None):
         QWidget.__init__(self)
         self.method = method_callable
@@ -21,14 +18,18 @@ class AugmentationMethodRadio(AugmentationMethodWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
-        self.radio = QRadioButton(name)
-        self.radio.toggled.connect(self._trigger)
-        self.layout.addWidget(self.radio)
+        self.button = QRadioButton(name)
+        self.button.setEnabled(False)
+        self.button.toggled.connect(self._trigger)
+        #self.button.setCheckable(True)
+        self.button.setAutoExclusive(False)
+        self.layout.addWidget(self.button)
 
+        self.settings_button = QPushButton("^")
+        self.settings_button.setEnabled(False)
+        self.settings_button.setFixedWidth(25)
+        self.settings_button.clicked.connect(self.open_settings)
         if self.parameters:
-            self.settings_button = QPushButton("^")
-            self.settings_button.setFixedWidth(25)
-            self.settings_button.clicked.connect(self.open_settings)
             self.layout.addWidget(self.settings_button)
 
         self.param_widgets = {}
@@ -50,8 +51,11 @@ class AugmentationMethodRadio(AugmentationMethodWidget):
         for name, widget in self.param_widgets.items():
             form.addRow(QLabel(name), widget)
 
+    def setEnabled(self, bool):
+        self.button.setEnabled(bool)
+        self.settings_button.setEnabled(bool)
+
     def open_settings(self):
-        """Открывает попап для редактирования параметров."""
         if self.dialog is None:
             raise("Окно не создано")
             
@@ -60,17 +64,20 @@ class AugmentationMethodRadio(AugmentationMethodWidget):
         self.dialog.activateWindow()
 
     def is_selected(self):
-        return self.radio.isChecked()
+        return self.button.isChecked()
 
     def get_params(self):
         return {name: widget.value() for name, widget in self.param_widgets.items()}
+    
+    def call_method(self, image):
+        return super().call_method(image)
 
 
 class AugmentationMethodGroup(QWidget):
     """
     Контейнер: объединяет несколько методов и позволяет выбрать один.
     """
-    def __init__(self, title: str, methods: list):
+    def __init__(self, methods: list):
         """
         :param title: Название блока (например: "Цветовые аугментации")
         :param methods: список объектов AugmentationMethodRadio
@@ -87,40 +94,38 @@ class AugmentationMethodGroup(QWidget):
 
 
         self.none = AugmentationMethodRadio("None", None)
-        self.none.radio.setChecked(True)
+        self.none.button.setChecked(True)
         layout.addWidget(self.none)
-        self.group.addButton(self.none.radio)
+        self.group.addButton(self.none.button)
 
         # Добавляем методы
         for m in self.methods:
             layout.addWidget(m)
-            self.group.addButton(m.radio)
+            self.group.addButton(m.button)
     def is_enabled(self):
-        if self.none.radio.isChecked():
+        if self.none.button.isChecked():
             return False
         return True
     
+    def setEnabled(self, bool):
+        self.none.setEnabled(bool)
+        for method in self.methods:
+            method.setEnabled(bool)
+    
     def get_name(self):
         for method in self.methods:
-            if method.radio.isChecked():
+            if method.button.isChecked():
                 return method.name
         return "None"
 
     def get_selected_method(self):
-        """
-        Возвращает (метод_функция, параметры) выбранного варианта.
-        Если ничего не выбрано → None, {}.
-        """
-        for item in self.methods:
-            if item.is_selected():
-                return item.method, item.get_params()
-        return None, {}
+        for method in self.methods:
+            if method.is_selected():
+                return method
+        return None
 
     def call_method(self, image):
-        """
-        Применяет выбранный метод к изображению.
-        """
-        method, params = self.get_selected_method()
+        method = self.get_selected_method()
         if method is None:
             return image
-        return method(image, **params)
+        return method.call_method(image)

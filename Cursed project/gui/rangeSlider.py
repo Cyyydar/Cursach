@@ -6,7 +6,7 @@ from PyQt5.QtGui import QPainter, QBrush, QColor
 class RangeSlider(QWidget):
     valueChanged = pyqtSignal(int, int)
 
-    def __init__(self, minimum=0, maximum=100, lowerValue=20, upperValue=80, parent=None):
+    def __init__(self, minimum=0, maximum=100, lowerValue=50, upperValue=80, parent=None):
         super().__init__(parent)
         self.setMinimumHeight(30)
 

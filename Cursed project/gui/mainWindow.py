@@ -7,14 +7,15 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt, QThread
 
-#TODO: Сделать восстановление цветности через специальную кнопку, которая вызывает выбор образца
-#TODO: Сделать отдельную логику для смешения изображений
-#TODO: Доделать сохранение в 3 группы
+#TODO: Сделать выбор количества картинок для обработки
+#TODO: Переделать медианный фильтр без scipy
+#TODO: Сделать принудительную нечетность параметров, где это нужно
 
-#from augmentMethodWidget import AugmentationMethodWidget #augmentMethodWidget import AugmentationMethodWidget
 from gui.augmentMethodWidget import AugmentationMethodWidget
 from gui.augmentMethodRadioButton import AugmentationMethodRadio, AugmentationMethodGroup
 from gui.augmentMethodCheckBoxYIQ import AugmentationMethodCheckBoxYIQ
+from gui.augmentedMethodBlendRadioButton import AugmentationMethodBlendRadioButton
+from gui.augmentedMethodColorRest import AugmentationMethodColorRestoration
 from gui.rangeSlider import RangeSlider
 
 from augmentator.noiseAugmentator import NoiseAugmentator
@@ -79,8 +80,10 @@ class MainWindow(QMainWindow):
         self.data_stat = QLabel()
         import_layout.addWidget(self.data_stat)
 
-
+        self.percent = QLabel("Соотношение\n" \
+                              "train/valid/test")
         self.percent_stat = QLabel()
+        import_layout.addWidget(self.percent)
         import_layout.addWidget(self.percent_stat)
         self.range = RangeSlider()
         self.range.valueChanged.connect(self.changePercent)
@@ -93,16 +96,6 @@ class MainWindow(QMainWindow):
         # --------------- Блок выбора параметров ----------------
         controls_layout = QHBoxLayout()
         controls_layout.setAlignment(Qt.AlignCenter)
-
-        # ComboBox выбора набора данных
-        """
-        self.dataset_combo = QComboBox()
-        self.dataset_combo.addItems(self.get_data_names())
-        self.dataset_combo.currentTextChanged.connect(self.change_dataset)
-        self.dataset_combo.setFixedWidth(200)
-
-        images_layout.addWidget(self.dataset_combo)
-        """
 
         # Методы аугментации
         self.methods = []
@@ -162,8 +155,8 @@ class MainWindow(QMainWindow):
         color_box.setAlignment(Qt.AlignTop)
         
         color_box.addWidget(QLabel("Преобразование цветности"))
-        group = AugmentationMethodGroup("stas", [AugmentationMethodRadio("В серый", ColorTransformAugmentor.to_gray, on_change_callable=self.process),
-                    AugmentationMethodRadio("В бинарный", ColorTransformAugmentor.to_binary, {"threshold": (127, 0, 255, 1)}, self.process),
+        group = AugmentationMethodGroup([AugmentationMethodRadio("В серый", ColorTransformAugmentor.to_gray, on_change_callable=self.process),
+                                         AugmentationMethodRadio("В бинарный", ColorTransformAugmentor.to_binary, {"threshold": (127, 0, 255, 1)}, self.process),
                          ])
         color_box.addWidget(group)
         self.methods.append(group)
@@ -177,7 +170,7 @@ class MainWindow(QMainWindow):
         rcolor_box.setAlignment(Qt.AlignTop)
         
         rcolor_box.addWidget(QLabel("Восстановление цветности"))
-        methods = [AugmentationMethodWidget("Восстановление цветности", ColorRestorationAugmentor.restore_image, on_change_callable=self.process)
+        methods = [AugmentationMethodColorRestoration("Восстановление цветности", ColorRestorationAugmentor.restore_color, {"neighborhood_size": (3,1,10,2)}, on_change_callable=self.process)
                          ]
         for method in methods:
             self.methods.append(method)
@@ -206,12 +199,13 @@ class MainWindow(QMainWindow):
         blend_box.setAlignment(Qt.AlignTop)
     
         blend_box.addWidget(QLabel("Смешение изображений"))
-        methods = [AugmentationMethodWidget("Эквализация", DenoiseAugmentor.average, {"ksize": (3, -10, 10, 2)}, self.process),
-                         AugmentationMethodWidget("Статическая цветокоррекция", DenoiseAugmentor.gaussian, {"ksize": (3, -10, 10, 2), "sigma": (0, -10, 10, 1)}, self.process),
+
+        self.blend_methods = [AugmentationMethodBlendRadioButton("Шамхатный порядок", ImageBlender.blend_chessboard, {"size": (16,1,64,1), "alpha":(0.5,0,1,0.1), "blend_width": (0,0,64,1)}, self.process),
+                         AugmentationMethodBlendRadioButton("Случайный порядок", ImageBlender.blend_randomly, {"size": (16,1,64,1), "alpha":(0.5,0,1,0.1), "blend_width": (0,0,64,1)}, self.process),
                          ]
-        for method in methods:
-            self.methods.append(method)
-            blend_box.addWidget(method)
+        group = AugmentationMethodGroup(self.blend_methods)
+        self.methods.append(group)
+        blend_box.addWidget(group) 
         methods.clear()
         controls_layout2.addLayout(blend_box)
 
@@ -221,7 +215,7 @@ class MainWindow(QMainWindow):
         geom_box.setAlignment(Qt.AlignTop)
         
         geom_box.addWidget(QLabel("Геометрические преобразования"))
-        methods = [AugmentationMethodWidget("Масштабирование", GeometricAugmentor.scale, {"fx": (2, 0, 10, 1), "fy": (2, 0, 10, 1)}, self.process),
+        methods = [AugmentationMethodWidget("Масштабирование", GeometricAugmentor.scale, {"fx": (2, 0.1, 10, 1), "fy": (2, 0.1, 10, 1)}, self.process),
                          AugmentationMethodWidget("Перенос/Поворот", GeometricAugmentor.translate_rotate, {"tx": (1, -10, 10, 1), "ty": (1, -10, 10, 1), "angle": (90, -360, 360, 15)}, self.process),
                          AugmentationMethodWidget("Эффект \"Стекла\"", GeometricAugmentor.glass_effect, {"block_size": (5,1,25,1)}, self.process),
                          AugmentationMethodWidget("Motion blur", GeometricAugmentor.motion_blur, {"size": (15,1,50,1)}, self.process),
@@ -281,19 +275,27 @@ class MainWindow(QMainWindow):
 
     def changePercent(self):
         l, r = self.range.values()
-        self.train_perc = l
-        self.val_perc = r - l
-        self.test_perc = self.range._max - r
+        self.slider_l = l
+        self.slider_r = r
 
-        self.percent_stat.setText(f"{self.train_perc} - {self.val_perc} - {self.test_perc}")
-        
+        self.percent_stat.setText(f"   {l} / {r - l}  / {self.range._max - r}")
+    
+    def enableAll(self):
+        for method in self.methods:
+            method.setEnabled(True)
 
     def choose_folder(self):
         self.path_to_data = QFileDialog.getExistingDirectory(self, "Выберите датасет")
         self.files = [f for f in os.listdir(self.path_to_data) 
                       if f.lower().endswith(('.jpg', '.png'))]
-        self.set_left_image(os.path.join(self.path_to_data,self.files[self.pic_index]))
-        self.process()
+        if len(self.files) != 0:
+            self.set_left_image(os.path.join(self.path_to_data,self.files[self.pic_index]))
+            self.enableAll()
+
+            for b in self.blend_methods:
+                b.change_folder(self.path_to_data)
+
+            self.process()
 
     def get_data_names(self):
         folders = [entry.name for entry in os.scandir(self.path_to_data) if entry.is_dir()]
@@ -352,8 +354,7 @@ class MainWindow(QMainWindow):
         return QPixmap.fromImage(qimg)
         
 
-    def set_left_image(self, path: str):
-        """Устанавливает изображение слева."""        
+    def set_left_image(self, path: str):   
         img = self.load_image_cv(path)
         pixmap = self.convert_cv_in_qt(img)
         self.image_left.setPixmap(
@@ -364,7 +365,6 @@ class MainWindow(QMainWindow):
         )
 
     def set_right_image(self, img):
-        """Устанавливает изображение справа."""
         self.image_right.setPixmap(
             img.scaled(
                 self.image_right.width(), self.image_right.height(),
@@ -373,8 +373,6 @@ class MainWindow(QMainWindow):
         )
 
     def process(self):
-        """Обработка данных."""
-
         processed_image = self.current_image
         self.active_filters = []
         for method in self.methods:
@@ -394,8 +392,14 @@ class MainWindow(QMainWindow):
             self.thread.start()
 
     def processAll(self):
-        os.makedirs(self.save_path, exist_ok=True)
+        save_folder = os.path.join(self.save_path, "train")
+
+        os.makedirs(os.path.join(self.save_path, "train"), exist_ok=True)
+        os.makedirs(os.path.join(self.save_path, "valid"), exist_ok=True)
+        os.makedirs(os.path.join(self.save_path, "test"), exist_ok=True)
+        idx = 0
         for img in sorted(self.files):
+            print(save_folder)
             self.set_left_image(os.path.join(self.path_to_data, img))
             processed_image = self.current_image
             file_name = img
@@ -404,5 +408,10 @@ class MainWindow(QMainWindow):
                     processed_image = method.call_method(processed_image)
                     file_name = method.get_name() + "_" + file_name
             self.set_right_image(self.convert_cv_in_qt(processed_image))
-            cv2.imwrite(os.path.join(self.save_path, file_name), processed_image)
-            #print(os.path.join(self.save_path, file_name))
+            cv2.imwrite(os.path.join(save_folder, file_name), processed_image)
+
+            if self.slider_l <= (idx / len(self.files)) * 100 < self.slider_r:
+                save_folder = os.path.join(self.save_path, "valid")
+            elif (idx / len(self.files)) * 100 >= self.slider_r:
+                save_folder = os.path.join(self.save_path, "test")
+            idx += 1

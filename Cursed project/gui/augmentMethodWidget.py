@@ -14,19 +14,24 @@ class AugmentationMethodWidget(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
         
-        self.checkbox = QCheckBox(name)
-        self.checkbox.stateChanged.connect(self._trigger)
-        self.layout.addWidget(self.checkbox)
+        self.button = QCheckBox(name)
+        self.button.setEnabled(False)
+        self.button.stateChanged.connect(self._trigger)
+        self.layout.addWidget(self.button)
         
         # Кнопка для открытия настроек
+        self.settings_button = QPushButton("^")
+        self.settings_button.setEnabled(False)
+        self.settings_button.setFixedWidth(25)
+        self.settings_button.clicked.connect(self.open_settings)
         if self.parameters:
-            self.settings_button = QPushButton("^")
-            self.settings_button.setFixedWidth(25)
-            self.settings_button.clicked.connect(self.open_settings)
             self.layout.addWidget(self.settings_button)
 
         self.create_param_window()
         
+    def setEnabled(self, bool):
+        self.button.setEnabled(bool)
+        self.settings_button.setEnabled(bool)
 
     def create_param_window(self):
         self.param_widgets = {}
@@ -52,7 +57,6 @@ class AugmentationMethodWidget(QWidget):
         return self.name
 
     def open_settings(self):
-        """Открывает попап для редактирования параметров."""
         if self.dialog is None:
             raise("Окно не создано")
             
@@ -61,7 +65,7 @@ class AugmentationMethodWidget(QWidget):
         self.dialog.activateWindow()
 
     def is_enabled(self):
-        return self.checkbox.isChecked()
+        return self.button.isChecked()
 
     def get_params(self):
         return {name: widget.value() for name, widget in self.param_widgets.items()}
@@ -73,6 +77,5 @@ class AugmentationMethodWidget(QWidget):
         return image
     
     def _trigger(self):
-        """Вызывается при изменении состояния или параметров."""
         if self.on_change_callable:
             self.on_change_callable()

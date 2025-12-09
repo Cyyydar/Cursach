@@ -3,13 +3,6 @@ import numpy as np
 class RussifierAugmentor:
     @staticmethod
     def russifier(img, alpha: float = 0.5) -> np.ndarray:
-        """
-        Красит изображение в цвета российского флага.
-        
-        :param img: входное изображение в формате BGR (OpenCV)
-        :param alpha: прозрачность наложения (0.0-1.0)
-        :return: изображение с наложением флага
-        """
         # Размеры изображения
         height, width = img.shape[:2]
 

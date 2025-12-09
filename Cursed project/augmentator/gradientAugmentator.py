@@ -4,12 +4,6 @@ import numpy as np
 class GradientAugmentor:
     @staticmethod
     def sobel_unsharp(image, alpha=1.0):
-        """
-        Применяет нерезкое маскирование с градиентом Собеля
-        :param image: BGR numpy array
-        :param alpha: коэффициент усиления градиента
-        :return: обработанное изображение
-        """
         if len(image.shape) == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         
@@ -29,12 +23,6 @@ class GradientAugmentor:
 
     @staticmethod
     def prewitt_unsharp(image, alpha=1.0):
-        """
-        Применяет нерезкое маскирование с градиентом Превитта
-        :param image: BGR numpy array
-        :param alpha: коэффициент усиления градиента
-        :return: обработанное изображение
-        """
         if len(image.shape) == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 

@@ -1,71 +1,44 @@
 import cv2
 import numpy as np
-from scipy.stats import mode
+from collections import Counter
 
 class ColorRestorationAugmentor:
-    def __init__(self, reference_images):
-        """
-        :param reference_images: список эталонных изображений (BGR, numpy array)
-        """
-        self.references_bgr = reference_images
-        self.references_lab = [cv2.cvtColor(img, cv2.COLOR_BGR2LAB) for img in reference_images]
+    @staticmethod
+    def restore_color(gray_image, reference_images: list, neighborhood_size: int = 3, smoothing = True):
+        h, w = gray_image.shape[:2]
+        restored_image = np.zeros((h, w, 3), dtype=np.uint8)
 
-    def restore_pixel(self, x, y, intensity, neighborhood=1):
-        """
-        Восстановление цвета для одного пикселя по интенсивности.
-        :param x, y: координаты пикселя в изображении
-        :param intensity: L-канал исходного пикселя
-        :param neighborhood: размер окрестности для статистики (по умолчанию 1)
-        :return: BGR цвет
-        """
-        colors = []
-
-        for ref_bgr, ref_lab in zip(self.references_bgr, self.references_lab):
-            L_ref, _, _ = cv2.split(ref_lab)
-            
-            # Ограничиваем границы окна окрестности
-            h, w = L_ref.shape
-            x_min = max(x - neighborhood, 0)
-            x_max = min(x + neighborhood + 1, h)
-            y_min = max(y - neighborhood, 0)
-            y_max = min(y + neighborhood + 1, w)
-
-            # Берём патч яркости и маску пикселей с нужной интенсивностью
-            patch_L = L_ref[x_min:x_max, y_min:y_max]
-            mask = (patch_L == intensity)
-
-            if np.any(mask):
-                patch_colors = ref_bgr[x_min:x_max, y_min:y_max][mask]
-                colors.extend(patch_colors)
-
-        if colors:
-            colors_array = np.array(colors)
-            most_common = mode(colors_array, axis=0)[0][0]
-            return most_common
-        else:
-            # Если не найдено совпадений — возвращаем серый
-            return np.array([intensity]*3, dtype=np.uint8)
-
-    def restore_image(self, src_image, neighborhood=1, smoothing=True):
-        """
-        Восстановление цвета всего изображения.
-        :param src_image: BGR изображение numpy array
-        :param neighborhood: размер окрестности
-        :param smoothing: применять сглаживание после восстановления
-        :return: восстановленное BGR изображение
-        """
-        lab_src = cv2.cvtColor(src_image, cv2.COLOR_BGR2LAB)
-        L_channel, _, _ = cv2.split(lab_src)
-
-        restored = np.zeros_like(src_image)
-
-        h, w = L_channel.shape
-        for i in range(h):
-            for j in range(w):
-                intensity = L_channel[i, j]
-                restored[i, j] = self.restore_pixel(i, j, intensity, neighborhood)
-
+        neighborhood_size = int(neighborhood_size)
+        
+        pad = neighborhood_size // 2
+        
+        # Подготовка паддинга для окрестности
+        padded_refs = [cv2.copyMakeBorder(ref, pad, pad, pad, pad, cv2.BORDER_REFLECT) for ref in reference_images]
+        
+        for y in range(h):
+            for x in range(w):
+                intensity = gray_image[y, x].astype(np.int16)
+                
+                colors = []
+                # Для каждого референсного изображения берем окрестность
+                for ref in padded_refs:
+                    neighborhood = ref[y:y+neighborhood_size, x:x+neighborhood_size, :]
+                    # Выбираем пиксели, у которых средняя интенсивность близка к интенсивности текущего серого пикселя
+                    gray_neigh = cv2.cvtColor(neighborhood, cv2.COLOR_BGR2GRAY)
+                    mask = np.abs(gray_neigh.astype(np.int16) - intensity) <= 10  # допускаем небольшое расхождение
+                    valid_colors = neighborhood[mask]
+                    if valid_colors.size > 0:
+                        colors.extend(valid_colors.tolist())
+                
+                if colors:
+                    # Выбираем наиболее частый цвет
+                    most_common_color = np.array(Counter([tuple(c) for c in colors]).most_common(1)[0][0], dtype=np.uint8)
+                    restored_image[y, x] = most_common_color
+                else:
+                    # Если подходящего цвета нет — оставляем серое
+                    restored_image[y, x] = np.full(3,intensity, dtype=np.uint8)
+        
         if smoothing:
-            restored = cv2.GaussianBlur(restored, (3, 3), 0)
-
-        return restored
+            restored_image = cv2.blur(restored_image, (3, 3))
+        
+        return restored_image

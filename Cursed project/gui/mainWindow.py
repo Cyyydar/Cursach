@@ -1,39 +1,24 @@
 import os
 import cv2
 from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QLabel, QPushButton, QApplication,
+    QMainWindow, QWidget, QLabel, QPushButton, QApplication, QSpinBox,
     QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout, QCheckBox
 )
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt, QThread
 
-#TODO: Сделать выбор количества картинок для обработки
-#TODO: Переделать медианный фильтр без scipy
 #TODO: Сделать принудительную нечетность параметров, где это нужно
 
-from gui.augmentMethodWidget import AugmentationMethodWidget
-from gui.augmentMethodRadioButton import AugmentationMethodRadio, AugmentationMethodGroup
-from gui.augmentMethodCheckBoxYIQ import AugmentationMethodCheckBoxYIQ
-from gui.augmentedMethodBlendRadioButton import AugmentationMethodBlendRadioButton
-from gui.augmentedMethodColorRest import AugmentationMethodColorRestoration
-from gui.rangeSlider import RangeSlider
+from gui import *
 
-from augmentator.noiseAugmentator import NoiseAugmentator
-from augmentator.denoiseAugmentator import DenoiseAugmentor
-from augmentator.historgamAugmentator import HistogramAugmentator
-from augmentator.colorTransformAugmetnator import ColorTransformAugmentor
-from augmentator.colorRestorationAugmentator import ColorRestorationAugmentor
-from augmentator.gradientAugmentator import GradientAugmentor
-from augmentator.geometricAugmentator import GeometricAugmentor
-from augmentator.blendAugmentator import ImageBlender
-from augmentator.russifierAugmentator import RussifierAugmentor
+from augmentator import *
 
-# Путь до папки platforms, так как qt на питоне проклят и не работает нифига
+# Путь до папки platforms, так как qt на питоне не работает почему-то
 plugin_path = r"Lib\site-packages\PyQt5\Qt5\plugins\platforms"
 
 os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = plugin_path
 class MainWindow(QMainWindow):
-    path_to_data = "Cursed project\data"
+    path_to_data = ""
     files = None
     pic_index = 1
     current_dataset = ""
@@ -79,6 +64,13 @@ class MainWindow(QMainWindow):
 
         self.data_stat = QLabel()
         import_layout.addWidget(self.data_stat)
+        count_processinglabel = QLabel("Количество изображений для обработки")
+        import_layout.addWidget(count_processinglabel)
+
+        self.count_processing = QSpinBox()
+        self.count_processing.setEnabled(False)
+        import_layout.addWidget(self.count_processing)
+
 
         self.percent = QLabel("Соотношение\n" \
                               "train/valid/test")
@@ -283,6 +275,10 @@ class MainWindow(QMainWindow):
     def enableAll(self):
         for method in self.methods:
             method.setEnabled(True)
+        self.count_processing.setEnabled(True)
+        self.count_processing.setMaximum(len(self.files))
+        self.count_processing.setValue(len(self.files))
+        self.count_processing.setMinimum(1)
 
     def choose_folder(self):
         self.path_to_data = QFileDialog.getExistingDirectory(self, "Выберите датасет")
@@ -307,7 +303,7 @@ class MainWindow(QMainWindow):
         self.set_left_image(f"{self.path_to_data}\{text}\{text}_1.jpg")
 
     def button_right(self):
-        if self.path_to_data == "Cursed project\data":
+        if self.path_to_data == "":
             return
 
         if self.pic_index + 1 >= 3000:
@@ -319,7 +315,7 @@ class MainWindow(QMainWindow):
         self.process()
 
     def button_left(self):
-        if self.path_to_data == "Cursed project\data":
+        if self.path_to_data == "":
             return
 
         if self.pic_index - 1 <= 0:
@@ -332,7 +328,6 @@ class MainWindow(QMainWindow):
 
         
     def load_image_cv(self, path: str) -> QPixmap:
-        # cv2 читает изображение в BGR
         img = cv2.imread(path)
         if img is None:
             print("OpenCV не смог открыть файл:", path)
@@ -341,16 +336,13 @@ class MainWindow(QMainWindow):
         return img
 
     def convert_cv_in_qt(self, img):
-        # Конвертация BGR → RGB
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         h, w, ch = img.shape
         bytes_per_line = ch * w
 
-        # Создаём QImage из numpy массива
         qimg = QImage(img.data, w, h, bytes_per_line, QImage.Format_RGB888)
 
-        # Конвертация QImage → QPixmap
         return QPixmap.fromImage(qimg)
         
 
@@ -399,7 +391,6 @@ class MainWindow(QMainWindow):
         os.makedirs(os.path.join(self.save_path, "test"), exist_ok=True)
         idx = 0
         for img in sorted(self.files):
-            print(save_folder)
             self.set_left_image(os.path.join(self.path_to_data, img))
             processed_image = self.current_image
             file_name = img
@@ -410,8 +401,10 @@ class MainWindow(QMainWindow):
             self.set_right_image(self.convert_cv_in_qt(processed_image))
             cv2.imwrite(os.path.join(save_folder, file_name), processed_image)
 
-            if self.slider_l <= (idx / len(self.files)) * 100 < self.slider_r:
+            if self.slider_l <= (idx / self.count_processing.value()) * 100 < self.slider_r:
                 save_folder = os.path.join(self.save_path, "valid")
-            elif (idx / len(self.files)) * 100 >= self.slider_r:
+            elif (idx / self.count_processing.value()) * 100 >= self.slider_r:
                 save_folder = os.path.join(self.save_path, "test")
+            if (idx > self.count_processing.value()):
+                break
             idx += 1

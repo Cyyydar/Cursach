@@ -7,9 +7,7 @@ class ImageBlender:
         if blend_width == 0:
             return cv2.addWeighted(patch1, alpha, patch2, 1 - alpha, 0)
         else:
-            # создаём маску для границы
             h, w, _ = patch1.shape
-            #mask = np.ones((h, w), dtype=np.float32) * alpha
             yy, xx = np.ogrid[:h, :w]
             dist = np.minimum(np.minimum(yy, h-1-yy), np.minimum(xx, w-1-xx)).astype(np.float32)
             mask = np.clip(dist / float(blend_width), 0.0, 1.0)

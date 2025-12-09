@@ -35,7 +35,7 @@ class ColorRestorationAugmentor:
                     most_common_color = np.array(Counter([tuple(c) for c in colors]).most_common(1)[0][0], dtype=np.uint8)
                     restored_image[y, x] = most_common_color
                 else:
-                    # Если подходящего цвета нет — оставляем серое
+                    # Если подходящего цвета нет - оставляем серое
                     restored_image[y, x] = np.full(3,intensity, dtype=np.uint8)
         
         if smoothing:

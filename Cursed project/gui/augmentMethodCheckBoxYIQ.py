@@ -34,10 +34,8 @@ class AugmentationMethodCheckBoxYIQ(AugmentationMethodWidget):
 
         params = self.get_params()
 
-        # Конвертация в YIQ
         yiq = self.rgb_to_yiq(image)
 
-        # Применяем фильтр к выбранным каналам
         if self.Y_chbox.isChecked():
             yiq[:, :, 0] = self.method(yiq[:, :, 0], **params)
         if self.I_chbox.isChecked():
@@ -45,8 +43,6 @@ class AugmentationMethodCheckBoxYIQ(AugmentationMethodWidget):
         if self.Q_chbox.isChecked():
             yiq[:, :, 2] = self.method(yiq[:, :, 2], **params)
 
-
-        # Обратно в RGB
         return self.yiq_to_rgb(yiq)
     
     def rgb_to_yiq(self, img):

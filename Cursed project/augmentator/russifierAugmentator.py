@@ -12,12 +12,12 @@ class RussifierAugmentor:
         # Высота каждой полосы
         stripe_height = height // 3
 
-        # Белая полоса (сверху)
-        flag[0:stripe_height, :] = (255, 255, 255)  # BGR
-        # Синяя полоса (середина)
-        flag[stripe_height:stripe_height*2, :] = (166, 57, 0)  # BGR (синий)
-        # Красная полоса (снизу)
-        flag[stripe_height*2:, :] = (30, 43, 213)  # BGR (красный)
+        # Белая полоса
+        flag[0:stripe_height, :] = (255, 255, 255)
+        # Синяя полоса
+        flag[stripe_height:stripe_height*2, :] = (166, 57, 0)
+        # Красная полоса
+        flag[stripe_height*2:, :] = (30, 43, 213)
 
         # Накладываем флаг с прозрачностью alpha
         russified = cv2.addWeighted(img, 1 - alpha, flag, alpha, 0)
